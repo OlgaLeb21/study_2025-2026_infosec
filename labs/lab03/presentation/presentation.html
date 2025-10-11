@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="dcterms.date" content="2025-01-01">
+  <title>Лабораторная работа №3. Шифрование гаммированием</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reset.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reveal.css">
+  <style>
+    .reveal .sourceCode {  /* see #7635 */
+      overflow: visible;
+    }
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/theme/black.css" id="theme">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">Лабораторная работа №3. Шифрование
+гаммированием</h1>
+  <p class="author"><p>Выполнила: Лебедева Ольга Андреевна</p></p>
+  <p class="institute"><p>РУДН, Москва, Россия</p></p>
+  <p class="date"><p>2025</p></p>
+</section>
+
+<section id="цель-работы" class="slide level2">
+<h2>Цель работы</h2>
+<p>Изучить и реализовать на языке Julia[1] метод симметричного
+шифрования гаммированием[2] с использованием операции сложения по
+модулю.</p>
+</section>
+<section id="задачи" class="slide level2">
+<h2>Задачи</h2>
+<ol type="1">
+<li>Ознакомиться с принципом работы метода гаммирования.</li>
+<li>Реализовать алгоритм шифрования и дешифрования на языке Julia.</li>
+<li>Провести тестирование алгоритма.</li>
+</ol>
+</section>
+<section id="объект-и-предмет-исследования" class="slide level2">
+<h2>Объект и предмет исследования</h2>
+<p>Объект исследования: симметричный метод шифрования гаммированием.</p>
+<p>Предмет исследования: алгоритм шифрования гаммированием, его
+реализация средствами Julia.</p>
+</section>
+<section id="условные-обозначения-и-термины" class="slide level2">
+<h2>Условные обозначения и термины</h2>
+<p>Шифрование гаммированием — это метод симметричного шифрования, при
+котором каждый символ открытого текста складывается по модулю с символом
+ключевой последовательности (гаммы).</p>
+<p>Гамма — псевдослучайная последовательность чисел или символов,
+используемая для наложения на исходный текст.</p>
+<p>Модуль — число, определяющее диапазон возможных значений результата
+арифметической операции. В данной работе используется модуль 33,
+соответствующий количеству букв русского алфавита.</p>
+<p>Ключ — исходное значение (фраза или набор чисел), из которого
+строится гамма и с помощью которого выполняется как шифрование, так и
+дешифрование.</p>
+</section>
+<section id="техническое-оснащение-и-выбранные-методы-проведения-работы"
+class="slide level2">
+<h2>Техническое оснащение и выбранные методы проведения работы</h2>
+<p>Программное обеспечение:</p>
+<ul>
+<li>Язык программирования Julia.</li>
+<li>Среда разработки JupyterLab / VS Code.</li>
+</ul>
+<p>Методы:</p>
+<ul>
+<li>Использование арифметики по модулю для операций над элементами
+алфавита.</li>
+<li>Преобразование текста в числовые последовательности и обратно.</li>
+<li>Работа с символьными строками и циклами в Julia.</li>
+<li>Реализация повторяющейся гаммы при шифровании длинных
+сообщений.</li>
+</ul>
+</section>
+<section id="теоретическое-введение" class="slide level2">
+<h2>Теоретическое введение</h2>
+<p>Метод гаммирования относится к симметричным криптографическим
+методам.<br />
+Каждый символ открытого текста представляется числом по таблице алфавита
+и складывается с соответствующим числом гаммы по модулю мощности
+алфавита.</p>
+<p>c<sub>i</sub> = (p<sub>i</sub> + g<sub>i</sub> − 1) mod 33 + 1<br />
+p<sub>i</sub> = (c<sub>i</sub> − g<sub>i</sub> − 1) mod 33 + 1</p>
+<p>где</p>
+<p>p<sub>i</sub> — код i-го символа исходного текста,<br />
+g<sub>i</sub> — код i-го символа гаммы,<br />
+c<sub>i</sub> — код i-го символа шифртекста.</p>
+<p>Если длина гаммы меньше длины текста, гамма повторяется
+циклически.<br />
+Метод симметричен: операция шифрования и расшифрования описывается
+одинаковой формулой с противоположным знаком.</p>
+</section>
+<section id="задание" class="slide level2">
+<h2>Задание</h2>
+<ol type="1">
+<li>Реализовать алгоритм шифрования гаммированием на русском
+алфавите.</li>
+<li>Написать функции преобразования текста в числовую форму и
+обратно.</li>
+<li>Реализовать операции шифрования и расшифрования по приведённым
+формулам.</li>
+<li>Проверить корректность работы программы на примере:</li>
+</ol>
+</section>
+<section id="шифрование-гаммированием" class="slide level2">
+<h2>Шифрование гаммированием</h2>
+<p>Выполним задание с помощью языка Julia:</p>
+<pre><code>function text_to_numbers(text)
+    alphabet = [&#39;А&#39;:&#39;Я&#39;;]
+    text = uppercase(text)
+    return [findfirst(isequal(ch), alphabet) for ch in text]
+end
+
+function numbers_to_text(nums)
+    alphabet = [&#39;А&#39;:&#39;Я&#39;;]
+    return join([alphabet[n] for n in nums])
+end
+
+function encrypt_gammirovanie(text, gamma)
+    p = text_to_numbers(text)
+    g = text_to_numbers(gamma)
+    m = 33
+    c = [mod((p[i] + g[(i - 1) % length(g) + 1] - 1), m) + 1 for i in 1:length(p)]
+    return c
+end</code></pre>
+</section>
+<section id="шифрование-гаммированием-1" class="slide level2">
+<h2>Шифрование гаммированием</h2>
+<pre><code>function decrypt_gammirovanie(c, gamma)
+    g = text_to_numbers(gamma)
+    m = 33
+    p = [mod((c[i] - g[(i - 1) % length(g) + 1] - 1), m) + 1 for i in 1:length(c)]
+    return numbers_to_text(p)
+end
+
+maintext = &quot;ПРИКАЗ&quot;
+gamma = &quot;ГАММА&quot;
+println(&quot;Текст: &quot;, maintext)
+println(&quot;Гамма: &quot;, gamma)
+cipher_nums = encrypt_gammirovanie(plaintext, gamma)
+println(&quot;Шифртекст (числа): &quot;, cipher_nums)
+decrypted_text = decrypt_gammirovanie(cipher_nums, gamma)
+println(&quot;Расшифрованный текст: &quot;, decrypted_text)</code></pre>
+</section>
+<section id="шифрование-гаммированием-2" class="slide level2">
+<h2>Шифрование гаммированием</h2>
+<p>Проверим результат работы кода: См. <a href="#/fig:001">рис.
+1</a></p>
+<figure id="fig:001">
+<img data-src="1.png" style="width:70.0%"
+alt="Шифрование гаммированием" />
+<figcaption aria-hidden="true">Шифрование гаммированием</figcaption>
+</figure>
+</section>
+<section id="шифрование-гаммированием-3" class="slide level2">
+<h2>Шифрование гаммированием</h2>
+<p>Принцип работы программы 1. Функция text_to_numbers преобразует буквы
+русского алфавита в числа от 1 до 33. 2. Функция numbers_to_text
+выполняет обратное преобразование - восстанавливает техт из чисел. 3.
+Функция encrypt_gammirovanie складывает значения текста и гаммы по
+модулю 33. Операция гарантирует, что намерация остается в пределах
+[1,33]. 4. Функция decrypt_gammirovanie производит обратное вычитание по
+модулю 33. Здесь также используется -1 перед mod, чтобы компенсировать
+смещение, связанное с нумерацией от 1. 5. После выполнения программы
+выводятся числовоей шифртекст и восстановленный исходный текст.</p>
+</section>
+<section id="полученные-результаты-и-заключение" class="slide level2">
+<h2>Полученные результаты и заключение</h2>
+<p>Программа корректно реализует метод гаммирования на русском алфавите.
+При шифровании каждая буква заменяется суммой её позиции и позиции буквы
+гаммы по модулю. При расшифровке производится обратное вычитаение, что
+полностью восстанавливает исходый текст. Результаты совпадают с
+приведенным примером из методического пособия.</p>
+</section>
+<section id="библиографическая-справка" class="slide level2">
+<h2>Библиографическая справка</h2>
+<p>[1] Julia: https://ru.wikipedia.org/wiki/Julia</p>
+<p>[2] Шифрование гаммированием:
+https://ru.wikipedia.org/wiki/%D0%93%D0%B0%D0%BC%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5</p>
+</section>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/reveal.js@^5/dist/reveal.js"></script>
+
+  <!-- reveal.js plugins -->
+  <script src="https://unpkg.com/reveal.js@^5/plugin/notes/notes.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/search/search.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/zoom/zoom.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/math/math.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: true,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'bottom-right',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: false,
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: false,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'default',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'slide',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'fade',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    </body>
+</html>
