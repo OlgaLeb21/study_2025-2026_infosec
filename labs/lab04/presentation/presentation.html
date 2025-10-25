@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="dcterms.date" content="2025-01-01">
+  <title>Лабораторная работа №4. Вычисление наибольшего общего делителя</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reset.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reveal.css">
+  <style>
+    .reveal .sourceCode {  /* see #7635 */
+      overflow: visible;
+    }
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/theme/black.css" id="theme">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">Лабораторная работа №4. Вычисление наибольшего
+общего делителя</h1>
+  <p class="author"><p>Выполнила: Лебедева Ольга Андреевна</p></p>
+  <p class="institute"><p>РУДН, Москва, Россия</p></p>
+  <p class="date"><p>2025</p></p>
+</section>
+
+<section id="цель-работы" class="slide level2">
+<h2>Цель работы</h2>
+<p>Изучить и реализовать на языке Julia[1] классический[2], бинарный,
+расширенный[3] и бинарный расширенный алгоритмы Евклида для нахождения
+наибольшего общего делителя.</p>
+</section>
+<section id="задачи" class="slide level2">
+<h2>Задачи</h2>
+<ol type="1">
+<li>Реализовать четыре варианта алгоритма Евклида на языке Julia.</li>
+</ol>
+</section>
+<section id="объект-и-предмет-исследования" class="slide level2">
+<h2>Объект и предмет исследования</h2>
+<p>Объект исследования: алгоритмы вычисления НОД.</p>
+<p>Предмет исследования: классический, бинарный, расширенный и бинарный
+расширенный алгоритмы Евклида.</p>
+</section>
+<section id="условные-обозначения-и-термины" class="slide level2">
+<h2>Условные обозначения и термины</h2>
+<p>НОД (наибольший общий делитель) — наибольшее целое число, на которое
+делятся оба числа без остатка.</p>
+<p>Коэффициенты линейной комбинации (x, y) — числа, удовлетворяющие
+уравнению a·x + b·y = НОД(a, b).</p>
+<p>Бинарный алгоритм — вариант метода Евклида, использующий деление на 2
+вместо деления с остатком.</p>
+<p>Расширенный алгоритм — модификация метода Евклида, позволяющая
+вычислить не только НОД, но и коэффициенты x и y.</p>
+</section>
+<section id="техническое-оснащение-и-выбранные-методы-проведения-работы"
+class="slide level2">
+<h2>Техническое оснащение и выбранные методы проведения работы</h2>
+<p>Программное обеспечение:</p>
+<ul>
+<li>Язык программирования Julia.</li>
+<li>Среда разработки JupyterLab / VS Code.</li>
+</ul>
+<p>Методы:</p>
+<ul>
+<li>Использование циклов и целочисленного деления.</li>
+<li>Работа с арифметическими операциями по модулю.</li>
+<li>Побитовые операции для бинарного алгоритма.</li>
+<li>Реализация шагов расширенного алгоритма с сохранением коэффициентов
+x и y.</li>
+</ul>
+</section>
+<section id="теоретическое-введение" class="slide level2">
+<h2>Теоретическое введение</h2>
+<p>Метод Евклида является классическим способом нахождения наибольшего
+общего делителя двух целых чисел. Он основан на свойстве:</p>
+<pre><code>если a = b·q + r, то НОД(a, b) = НОД(b, r)</code></pre>
+<p>Алгоритм повторяется, пока остаток не станет равен нулю.</p>
+<p>Бинарный алгоритм Евклида оптимизирует вычисления, заменяя деление на
+операции вычитания и деления на 2 (битовые сдвиги), что ускоряет
+выполнение на компьютере.</p>
+</section>
+<section id="теоретическое-введение-1" class="slide level2">
+<h2>Теоретическое введение</h2>
+<p>Расширенный алгоритм Евклида помимо НОД находит коэффициенты x и y,
+при которых выполняется равенство</p>
+<pre><code>a·x + b·y = НОД(a, b)</code></pre>
+<p>Эти коэффициенты широко применяются в криптографии и теории
+чисел.</p>
+<p>Расширенный бинарный алгоритм Евклида объединяет оба подхода, повышая
+эффективность вычислений при сохранении возможности нахождения
+коэффициентов.</p>
+</section>
+<section id="задание" class="slide level2">
+<h2>Задание</h2>
+<ol type="1">
+<li>Реализовать четыре алгоритма Евклида на языке Julia.</li>
+<li>Проверить работу программ.</li>
+<li>Вывести результаты (НОД и коэффициенты).</li>
+</ol>
+</section>
+<section id="реализация-алгоритмов.-классический-евклид"
+class="slide level2">
+<h2>Реализация алгоритмов. Классический Евклид</h2>
+<p>Напишем код 1 с помощью языка Julia: См. <a href="#/fig:001">рис.
+1</a></p>
+<figure id="fig:001">
+<img data-src="1.png" style="width:70.0%" alt="Классический Евклид" />
+<figcaption aria-hidden="true">Классический Евклид</figcaption>
+</figure>
+</section>
+<section id="реализация-алгоритмов.-классический-евклид-1"
+class="slide level2">
+<h2>Реализация алгоритмов. Классический Евклид</h2>
+<p>Классический алгоритм Евклида основан на свойстве: если a = b·q + r,
+где r — остаток от деления, то НОД(a, b) = НОД(b, r). Это означает, что
+общий делитель двух чисел не изменится, если большее число заменить на
+остаток от деления его на меньшее.</p>
+<p>В программе используется цикл while, который выполняется до тех пор,
+пока второе число не станет равным нулю.</p>
+</section>
+<section id="реализация-алгоритмов.-классический-евклид-2"
+class="slide level2">
+<h2>Реализация алгоритмов. Классический Евклид</h2>
+<p>На каждом шаге происходит операция:</p>
+<pre><code>a, b = b, a % b </code></pre>
+<p>то есть старшее число заменяется младшим, а младшее — остатком от
+деления. Когда остаток становится равным нулю, переменная a содержит
+значение наибольшего общего делителя. Алгоритм является базовым,
+надёжным и демонстрирует принцип постепенного уменьшения пары чисел до
+их общего делителя.</p>
+</section>
+<section id="реализация-алгоритмов.-бинарный-евклид"
+class="slide level2">
+<h2>Реализация алгоритмов. Бинарный Евклид</h2>
+<p>Напишем код 2 с помощью языка Julia: См. <a href="#/fig:002">рис.
+2</a></p>
+<figure id="fig:002">
+<img data-src="2.png" style="width:70.0%" alt="Бинарный Евклид" />
+<figcaption aria-hidden="true">Бинарный Евклид</figcaption>
+</figure>
+</section>
+<section id="реализация-алгоритмов.-бинарный-евклид-1"
+class="slide level2">
+<h2>Реализация алгоритмов. Бинарный Евклид</h2>
+<p>Бинарный (или двоичный) алгоритм Евклида является оптимизированной
+версией классического метода. Он основан на том, что деление на 2 можно
+заменить побитовым сдвигом, что существенно ускоряет вычисления на
+уровне машинных операций.</p>
+<p>Программа проверяет чётность чисел с помощью функции iseven(). Если
+оба числа чётные — они делятся на 2, а общий множитель 2 запоминается.
+Если одно из чисел чётное, оно делится на 2, пока не станет нечётным.
+Если оба числа нечётные, из большего вычитается меньшее — при этом НОД
+не меняется. Цикл продолжается до тех пор, пока одно из чисел не
+обнулится. В конце результат восстанавливается умножением на сохранённую
+степень двойки. Таким образом, алгоритм избегает операций деления с
+остатком и использует только побитовые сдвиги и вычитания.</p>
+</section>
+<section id="реализация-алгоритмов.-расширенный-евклид"
+class="slide level2">
+<h2>Реализация алгоритмов. Расширенный Евклид</h2>
+<p>Напишем код 3 с помощью языка Julia: См. <a href="#/fig:003">рис.
+3</a></p>
+<figure id="fig:003">
+<img data-src="3.png" style="width:70.0%" alt="Расширенный Евклид" />
+<figcaption aria-hidden="true">Расширенный Евклид</figcaption>
+</figure>
+</section>
+<section id="реализация-алгоритмов.-расширенный-евклид-1"
+class="slide level2">
+<h2>Реализация алгоритмов. Расширенный Евклид</h2>
+<p>Расширенный алгоритм Евклида не только находит НОД, но и вычисляет
+такие коэффициенты x и y, для которых выполняется равенство:</p>
+<pre><code>a·x + b·y = НОД(a, b)</code></pre>
+<p>Алгоритм использует те же шаги, что и классический, но дополнительно
+сохраняет линейные комбинации исходных чисел. На каждом шаге, кроме
+вычисления остатка, пересчитываются коэффициенты s и t, которые
+отражают, как текущий остаток выражается через a и b.</p>
+</section>
+<section id="реализация-алгоритмов.-расширенный-евклид-2"
+class="slide level2">
+<h2>Реализация алгоритмов. Расширенный Евклид</h2>
+<p>Когда один из остатков становится равным нулю, предыдущие значения s
+и t содержат коэффициенты, удовлетворяющие приведённому уравнению. Эти
+значения часто применяются в криптографии (например, при поиске обратных
+элементов по модулю). В итоге алгоритм возвращает три значения: сам НОД
+и коэффициенты x, y.</p>
+</section>
+<section id="реализация-алгоритмов.-бинарный-расширенный-евклид"
+class="slide level2">
+<h2>Реализация алгоритмов. Бинарный расширенный Евклид</h2>
+<p>Напишем код 4 с помощью языка Julia: См. <a href="#/fig:004">рис.
+4</a></p>
+<figure id="fig:004">
+<img data-src="4.png" style="width:70.0%"
+alt="Бинарный расширенный Евклид" />
+<figcaption aria-hidden="true">Бинарный расширенный Евклид</figcaption>
+</figure>
+</section>
+<section id="реализация-алгоритмов.-бинарный-расширенный-евклид-1"
+class="slide level2">
+<h2>Реализация алгоритмов. Бинарный расширенный Евклид</h2>
+<p>Расширенный бинарный алгоритм Евклида объединяет идеи двух предыдущих
+методов: он выполняет операции над числами с использованием только
+сдвигов и вычитаний, но при этом вычисляет коэффициенты x и y в
+выражении:</p>
+<pre><code>a·x + b·y = НОД(a, b)</code></pre>
+<p>Алгоритм начинается с удаления общих множителей 2, которые
+накапливаются в переменной g.</p>
+</section>
+<section id="реализация-алгоритмов.-бинарный-расширенный-евклид-2"
+class="slide level2">
+<h2>Реализация алгоритмов. Бинарный расширенный Евклид</h2>
+<p>Далее формируются две пары коэффициентов (A, B) и (C, D), которые
+позволяют отслеживать, как каждое текущее число u и v выражается через
+исходные a и b. На каждом шаге алгоритм делает одно из чисел нечётным,
+затем вычитает меньшее из большего, корректируя коэффициенты, чтобы
+сохранить равенство.</p>
+<p>Когда одно из чисел становится нулём, второе содержит значение НОД, а
+соответствующие коэффициенты (x, y) — решение линейной комбинации.
+Благодаря бинарной оптимизации этот метод работает быстрее, чем
+классический расширенный вариант, особенно для больших чисел.</p>
+</section>
+<section id="полученные-результаты-и-заключение" class="slide level2">
+<h2>Полученные результаты и заключение</h2>
+<p>Запустим код и проверим результаты работы алгоритмов: См. <a
+href="#/fig:005">рис. 5</a></p>
+<figure id="fig:005">
+<img data-src="5.png" style="width:70.0%" alt="Вывод результатов" />
+<figcaption aria-hidden="true">Вывод результатов</figcaption>
+</figure>
+</section>
+<section id="полученные-результаты-и-заключение-1" class="slide level2">
+<h2>Полученные результаты и заключение</h2>
+<p>В ходе работы были изучены и реализованы четыре варианта алгоритма
+Евклида. Все методы дают одинаковый результат по величине НОД, что
+подтверждает их корректность. Бинарные алгоритмы демонстрируют более
+высокую эффективность при работе с большими числами, так как используют
+операции побитового сдвига. Расширенные версии позволяют получить
+дополнительные параметры (коэффициенты линейной комбинации), применяемые
+в криптографии.</p>
+</section>
+<section id="библиографическая-справка" class="slide level2">
+<h2>Библиографическая справка</h2>
+<p>[1] Julia: https://ru.wikipedia.org/wiki/Julia</p>
+<p>[2] Алгоритм Евклида —
+https://ru.wikipedia.org/wiki/Алгоритм_Евклида</p>
+<p>[3] Расширенный алгоритм Евклида —
+https://ru.wikipedia.org/wiki/Расширенный_алгоритм_Евклида</p>
+</section>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/reveal.js@^5/dist/reveal.js"></script>
+
+  <!-- reveal.js plugins -->
+  <script src="https://unpkg.com/reveal.js@^5/plugin/notes/notes.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/search/search.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/zoom/zoom.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/math/math.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: true,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'bottom-right',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: false,
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: false,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'default',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'slide',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'fade',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    </body>
+</html>
