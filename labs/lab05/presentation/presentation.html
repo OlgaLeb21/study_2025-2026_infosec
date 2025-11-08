@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="dcterms.date" content="2025-01-01">
+  <title>Лабораторная работа №5. Вероятностные алгоритмы проверки чисел на простоту</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reset.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reveal.css">
+  <style>
+    .reveal .sourceCode {  /* see #7635 */
+      overflow: visible;
+    }
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/theme/black.css" id="theme">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">Лабораторная работа №5. Вероятностные алгоритмы
+проверки чисел на простоту</h1>
+  <p class="author"><p>Выполнила: Лебедева Ольга Андреевна</p></p>
+  <p class="institute"><p>РУДН, Москва, Россия</p></p>
+  <p class="date"><p>2025</p></p>
+</section>
+
+<section id="цель-работы" class="slide level2">
+<h2>Цель работы</h2>
+<p>Изучить и реализовать на языке Julia[1] вероятностные методы проверки
+простоты чисел: тест Ферма[2], тест Соловэя-Штрассена[3], тест
+Миллера-Рабина[4] и вычисления символа Якоби[5].</p>
+</section>
+<section id="задачи" class="slide level2">
+<h2>Задачи</h2>
+<ol type="1">
+<li><p>Ознакомиться с теоретическими основами вероятностных тестов на
+простоту.</p></li>
+<li><p>Реализовать и протестировать алгоритмы Ферма, Соловея–Штрассена и
+Миллера–Рабина.</p></li>
+<li><p>Изучить вычисление символа Якоби как вспомогательной функции для
+теста Соловея–Штрассена.</p></li>
+<li><p>Сравнить точность и поведение различных тестов на примерах
+простых и составных чисел.</p></li>
+</ol>
+</section>
+<section id="объект-и-предмет-исследования" class="slide level2">
+<h2>Объект и предмет исследования</h2>
+<p>Объект исследования: методы проверки чисел на простоту.</p>
+<p>Предмет исследования: вероятностные алгоритмы, основанные на
+свойствах чисел в модульной арифметике.</p>
+</section>
+<section id="условные-обозначения-и-термины" class="slide level2">
+<h2>Условные обозначения и термины</h2>
+<p>Простое число – натуральное число больше единицы, имеющее ровно два
+различных натуральных делителя: 1 и само себя.</p>
+<p>Составное число – натуральное число, имеющее более двух
+делителей.</p>
+<p>Модульная арифметика – система вычислений по модулю n, в которой
+рассматриваются остатки от деления чисел на n.</p>
+<p>Вероятностный тест на простоту – алгоритм, который на основе случайно
+выбираемых параметров определяет, является ли число вероятно простым или
+точно составным; допускает малую вероятность ошибки в сторону “простое”
+для некоторых составных чисел.</p>
+<p>Символ Якоби (a/n) – обобщение символа Лежандра для нечётного
+положительного n. Принимает значения -1, 0 или 1 и используется для
+анализа квадратичных вычетов и в вероятностных тестах на простоту.</p>
+<p>Основание теста (a) – целое число, выбираемое в заданном диапазоне
+(обычно от 2 до n-2), используемое в формулах проверок.</p>
+<p>powermod(a, b, n) – возведение числа a в степень b по модулю n с
+использованием быстрого алгоритма (используется для эффективности и
+предотвращения переполнения).</p>
+</section>
+<section id="техническое-оснащение-и-выбранные-методы-проведения-работы"
+class="slide level2">
+<h2>Техническое оснащение и выбранные методы проведения работы</h2>
+<p>Программное обеспечение:</p>
+<ul>
+<li>Язык программирования Julia.</li>
+<li>Среда разработки JupyterLab / VS Code.</li>
+</ul>
+<p>Методы:</p>
+<ul>
+<li>Использование модульной арифметики для возведения в степень по
+модулю.</li>
+<li>Генерация случайных оснований для тестов.</li>
+<li>Проверка выполнения сравнений в модульной системе.</li>
+<li>Многократное повторение тестов для снижения вероятности ошибки.</li>
+</ul>
+</section>
+<section id="теоретическое-введение" class="slide level2">
+<h2>Теоретическое введение</h2>
+<p>Проверка чисел на простоту является важной задачей теории чисел и
+криптографии. Детерминированные методы, такие как деление на все
+возможные делители до sqrt(n) требуют слишком больших вычислений для
+больших чисел. Поэтому в практических системах используются
+вероятностные тесты, которые позволяют быстро определить, является ли
+число вероятно простым.</p>
+<p>Среди таких тестов выделяются три наиболее известных метода: тест
+Ферма, тест Соловэя–Штрассена и тест Миллера–Рабина. Они основаны на
+свойствах чисел в модульной арифметике и используют случайные основания
+для проверки выполнения определённых сравнений. Ошибка возможна, но
+вероятность её возникновения стремительно уменьшается с увеличением
+числа итераций.</p>
+<p>Символ Якоби, в свою очередь, является важным элементом при
+реализации теста Соловэя–Штрассена, поскольку он позволяет связать
+поведение степени числа с теоретическими свойствами квадратичных
+вычетов.</p>
+</section>
+<section id="задание" class="slide level2">
+<h2>Задание</h2>
+<p>Реализовать на Julia четыре функции:</p>
+<ol type="1">
+<li>Тест Ферма.</li>
+<li>Вычисление символа Якоби.</li>
+<li>Тест Соловэя–Штрассена.</li>
+<li>Тест Миллера–Рабина.</li>
+</ol>
+</section>
+<section id="тест-ферма" class="slide level2">
+<h2>Тест Ферма</h2>
+<p>Выполним задание 1 с помощью языка Julia:</p>
+<p>Проверим результат работы кода: См. <a href="#/fig:001">рис.
+1</a></p>
+<figure id="fig:001">
+<img data-src="1.png" style="width:70.0%" alt="Тест Ферма" />
+<figcaption aria-hidden="true">Тест Ферма</figcaption>
+</figure>
+</section>
+<section id="тест-ферма-1" class="slide level2">
+<h2>Тест Ферма</h2>
+<p>Алгоритм основан на малой теореме Ферма, согласно которой, если число
+<span class="math inline">\(p\)</span> простое, то для любого целого
+<span class="math inline">\(a\)</span>, взаимно простого с <span
+class="math inline">\(p\)</span>, выполняется соотношение <span
+class="math inline">\(a^{p-1} \equiv 1 \pmod p\)</span>.</p>
+<p>Проверка заключается в выборе нескольких случайных оснований <span
+class="math inline">\(a\)</span> из диапазона <span
+class="math inline">\(2 \le a \le n - 2\)</span> и вычислении значения
+<span class="math inline">\(a^{n-1} \bmod n\)</span>. Если равенство
+выполняется для всех выбранных оснований, число считается вероятно
+простым. Метод обеспечивает простую и быструю проверку свойств числа в
+модульной арифметике, что делает его удобным для первичной оценки
+простоты.</p>
+</section>
+<section id="вычисление-символа-якоби" class="slide level2">
+<h2>Вычисление символа Якоби</h2>
+<p>Выполним задание 2 с помощью языка Julia и проверим результат работы
+кода: См. <a href="#/fig:002">рис. 2</a></p>
+<figure id="fig:002">
+<img data-src="2.png" style="width:70.0%"
+alt="Вычисление символа Якоби" />
+<figcaption aria-hidden="true">Вычисление символа Якоби</figcaption>
+</figure>
+</section>
+<section id="вычисление-символа-якоби-1" class="slide level2">
+<h2>Вычисление символа Якоби</h2>
+<p>Символ Якоби <span class="math inline">\((a/n)\)</span> представляет
+собой обобщение символа Лежандра и используется для анализа свойств
+чисел в модульной арифметике. Он принимает значения <span
+class="math inline">\(1\)</span>, <span
+class="math inline">\(-1\)</span> или <span
+class="math inline">\(0\)</span> и вычисляется на основе ряда правил,
+включая выделение степеней числа 2 и закон квадратичной взаимности.</p>
+<p>Значение символа Якоби позволяет установить связь между степенью
+числа и его квадратичными вычетами по модулю <span
+class="math inline">\(n\)</span>. В контексте проверки простоты символ
+Якоби служит важным элементом, применяемым в тесте
+Соловэя–Штрассена.</p>
+</section>
+<section id="тест-соловэяштрассена" class="slide level2">
+<h2>Тест Соловэя–Штрассена</h2>
+<p>Выполним задание 3 с помощью языка Julia. Проверим результат работы
+кода: См. <a href="#/fig:003">рис. 3</a></p>
+<figure id="fig:003">
+<img data-src="3.png" style="width:70.0%"
+alt="Тест Соловэя–Штрассена" />
+<figcaption aria-hidden="true">Тест Соловэя–Штрассена</figcaption>
+</figure>
+</section>
+<section id="тест-соловэяштрассена-1" class="slide level2">
+<h2>Тест Соловэя–Штрассена</h2>
+<p>Тест Соловэя–Штрассена объединяет идею теста Ферма и использование
+символа Якоби для уточнения результатов. Если число <span
+class="math inline">\(n\)</span> простое, то для любого <span
+class="math inline">\(a\)</span>, взаимно простого с <span
+class="math inline">\(n\)</span>, выполняется соотношение <span
+class="math inline">\(a^{(n-1)/2} \equiv \left(\dfrac{a}{n}\right) \pmod
+n\)</span>.</p>
+<p>Здесь <span class="math inline">\(\left(\dfrac{a}{n}\right)\)</span>
+— символ Якоби, вычисляемый по отдельному алгоритму. В ходе проверки
+выбирается несколько случайных оснований <span
+class="math inline">\(a\)</span>, для которых вычисляются обе части
+равенства. Если они совпадают, число считается вероятно простым. Метод
+позволяет уточнить оценку простоты числа и служит развитием идеи теста
+Ферма, опираясь на более глубокие свойства теории чисел.</p>
+</section>
+<section id="тест-миллерарабина" class="slide level2">
+<h2>Тест Миллера–Рабина</h2>
+<p>Выполним задание 4 с помощью языка Julia. Проверим результат работы
+кода: См. <a href="#/fig:004">рис. 4</a></p>
+<figure id="fig:004">
+<img data-src="4.png" style="width:70.0%" alt="Тест Миллера–Рабина" />
+<figcaption aria-hidden="true">Тест Миллера–Рабина</figcaption>
+</figure>
+</section>
+<section id="тест-миллерарабина-1" class="slide level2">
+<h2>Тест Миллера–Рабина</h2>
+<p>Тест Миллера–Рабина представляет собой один из наиболее надёжных
+вероятностных методов проверки простоты числа и применяется в
+криптографических системах. Число <span class="math inline">\(n -
+1\)</span> представляется в виде <span class="math inline">\(n - 1 = 2^s
+\cdot d\)</span>, где <span class="math inline">\(d\)</span> — нечётное.
+Для случайного основания <span class="math inline">\(a\)</span>
+проверяются условия:</p>
+<p><span class="math inline">\(a^d \equiv 1 \pmod n\)</span> или <span
+class="math inline">\(a^{2^r d} \equiv -1 \pmod n\)</span> для
+некоторого <span class="math inline">\(r &lt; s\)</span>.</p>
+<p>Если хотя бы одно из этих условий выполняется, число рассматривается
+как вероятно простое. Тест повторяется несколько раз для разных
+оснований, что повышает достоверность результата. Благодаря сочетанию
+эффективности и высокой вероятности правильного решения, метод
+Миллера–Рабина является практическим стандартом проверки простоты
+чисел.</p>
+</section>
+<section id="полученные-результаты" class="slide level2">
+<h2>Полученные результаты</h2>
+<p>В ходе лабораторной работы были реализованы четыре алгоритма на языке
+Julia: тест Ферма, функция вычисления символа Якоби, тест
+Соловея–Штрассена и тест Миллера–Рабина. Для проверки корректности
+работы были проведены эксперименты на различных типах чисел: простых
+(17, 97), составных (21, 99) и числе Кармайкла 561.</p>
+<p>Результаты показали ожидаемое поведение всех алгоритмов:</p>
+<ul>
+<li><p>для простых чисел тесты Ферма, Соловея–Штрассена и Миллера–Рабина
+подтвердили их простоту;</p></li>
+<li><p>для составных чисел значения корректно определялись как
+составные;</p></li>
+<li><p>число 561, обладающее особыми свойствами, также корректно было
+классифицировано тестами Соловэя–Штрассена и Миллера–Рабина.</p></li>
+</ul>
+<p>Таким образом, все реализованные функции отработали корректно,
+подтвердив как правильность кода, так и теоретические зависимости,
+заложенные в алгоритмы.</p>
+</section>
+<section id="заключение" class="slide level2">
+<h2>Заключение</h2>
+<p>В результате выполнения лабораторной работы были изучены и
+реализованы вероятностные методы проверки чисел на простоту. Алгоритмы
+Ферма, Соловэя–Штрассена и Миллера–Рабина были исследованы как с
+теоретической, так и с практической точки зрения. Реализация на Julia
+позволила закрепить навыки работы с модульной арифметикой.</p>
+</section>
+<section id="библиографическая-справка" class="slide level2">
+<h2>Библиографическая справка</h2>
+<p>[1] <a href="https://ru.wikipedia.org/wiki/Julia">Julia</a></p>
+<p>[2] <a
+href="https://ru.wikipedia.org/wiki/%D0%9C%D0%B0%D0%BB%D0%B0%D1%8F_%D1%82%D0%B5%D0%BE%D1%80%D0%B5%D0%BC%D0%B0_%D0%A4%D0%B5%D1%80%D0%BC%D0%B0">Малая
+теорема Ферма</a></p>
+<p>[3] <a
+href="https://ru.wikipedia.org/wiki/%D0%A2%D0%B5%D1%81%D1%82_%D0%A1%D0%BE%D0%BB%D0%BE%D0%B2%D0%B5%D1%8F_%E2%80%94_%D0%A8%D1%82%D1%80%D0%B0%D1%81%D1%81%D0%B5%D0%BD%D0%B0">Тест
+Соловэя–Штрассена</a></p>
+<p>[4] <a
+href="https://ru.wikipedia.org/wiki/%D0%A2%D0%B5%D1%81%D1%82_%D0%9C%D0%B8%D0%BB%D0%BB%D0%B5%D1%80%D0%B0_%E2%80%94_%D0%A0%D0%B0%D0%B1%D0%B8%D0%BD%D0%B0">Тест
+Миллера–Рабина</a></p>
+<p>[5] <a
+href="https://ru.wikipedia.org/wiki/%D0%A1%D0%B8%D0%BC%D0%B2%D0%BE%D0%BB_%D0%AF%D0%BA%D0%BE%D0%B1%D0%B8">Символ
+Якоби</a></p>
+</section>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/reveal.js@^5/dist/reveal.js"></script>
+
+  <!-- reveal.js plugins -->
+  <script src="https://unpkg.com/reveal.js@^5/plugin/notes/notes.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/search/search.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/zoom/zoom.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/math/math.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: true,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'bottom-right',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: false,
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: false,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'default',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'slide',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'fade',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    </body>
+</html>
