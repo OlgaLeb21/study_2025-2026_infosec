@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="dcterms.date" content="2025-01-01">
+  <title>Лабораторная работа №8. Целочисленная арифметика многократной точности</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reset.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/reveal.css">
+  <style>
+    .reveal .sourceCode {  /* see #7635 */
+      overflow: visible;
+    }
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^5/dist/theme/black.css" id="theme">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">Лабораторная работа №8. Целочисленная арифметика
+многократной точности</h1>
+  <p class="author"><p>Выполнила: Лебедева Ольга Андреевна</p></p>
+  <p class="institute"><p>РУДН, Москва, Россия</p></p>
+  <p class="date"><p>2025</p></p>
+</section>
+
+<section id="цель-работы" class="slide level2">
+<h2>Цель работы</h2>
+<p>Изучить принципы реализации арифметических операций над целыми
+числами многократной точности и реализовать на языке Julia[1] основные
+алгоритмы сложения, вычитания, умножения и деления больших чисел
+средствами языка программирования Julia.</p>
+</section>
+<section id="задачи" class="slide level2">
+<h2>Задачи</h2>
+<ol type="1">
+<li><p>Ознакомиться с представлением больших целых чисел в виде массивов
+цифр.</p></li>
+<li><p>Реализовать алгоритмы сложения и вычитания неотрицательных целых
+чисел.</p></li>
+<li><p>Реализовать два алгоритма умножения многозначных чисел.</p></li>
+<li><p>Реализовать алгоритм деления многозначных целых чисел с
+получением частного и остатка.</p></li>
+<li><p>Проверить корректность работы реализованных алгоритмов на
+тестовых данных.</p></li>
+</ol>
+</section>
+<section id="объект-и-предмет-исследования" class="slide level2">
+<h2>Объект и предмет исследования</h2>
+<p>Объект исследования: целочисленная арифметика многократной
+точности.</p>
+<p>Предмет исследования: алгоритмы поразрядного выполнения
+арифметических операций над большими целыми числами и их программная
+реализация на языке Julia.</p>
+</section>
+<section id="условные-обозначения-и-термины" class="slide level2">
+<h2>Условные обозначения и термины</h2>
+<p>Основание системы счисления b — натуральное число, определяющее
+количество допустимых цифр в каждом разряде.</p>
+<p>Перенос — целая часть результата поразрядной операции, передаваемая в
+старший разряд.</p>
+<p>Заём — операция вычитания, при которой значение старшего разряда
+уменьшается для корректного выполнения разности</p>
+</section>
+<section id="техническое-оснащение-и-выбранные-методы-проведения-работы"
+class="slide level2">
+<h2>Техническое оснащение и выбранные методы проведения работы</h2>
+<p>Программное обеспечение:</p>
+<ul>
+<li>Язык программирования Julia.</li>
+<li>Среда разработки JupyterLab / VS Code.</li>
+</ul>
+<p>Методы:</p>
+<ul>
+<li>Представление чисел в виде массивов целых цифр.</li>
+<li>Поразрядная обработка чисел в циклах.</li>
+<li>Использование целочисленного деления и операции взятия остатка.</li>
+<li>Ручная обработка переносов и заимствований.</li>
+</ul>
+</section>
+<section id="теоретическое-введение" class="slide level2">
+<h2>Теоретическое введение</h2>
+<p>Арифметика многократной точности применяется в задачах криптографии,
+численных методов и теории чисел, где стандартной разрядности целых
+типов данных недостаточно. Основной идеей является представление числа в
+виде последовательности цифр в некоторой системе счисления и выполнение
+всех операций поразрядно, аналогично классическим школьным
+алгоритмам.</p>
+<p>Такой подход позволяет реализовать сложение, вычитание, умножение и
+деление чисел произвольной длины, не используя встроенные типы больших
+чисел.</p>
+</section>
+<section id="задание" class="slide level2">
+<h2>Задание</h2>
+<p>Реализовать программно алгоритмы:</p>
+<ol type="1">
+<li><p>Сложения неотрицательных целых чисел.</p></li>
+<li><p>Вычитания неотрицательных целых чисел.</p></li>
+<li><p>Умножения многозначных целых чисел столбиком.</p></li>
+<li><p>Быстрого умножения многозначных целых чисел.</p></li>
+<li><p>Деления многозначных целых чисел с вычислением частного и
+остатка.</p></li>
+</ol>
+</section>
+<section id="сложение-неотрицательных-целых-чисел" class="slide level2">
+<h2>Сложение неотрицательных целых чисел</h2>
+<p>Выполним задание 1 с помощью языка Julia:</p>
+<pre><code>function normalize(x)
+    i = findfirst(!=(0), x)
+    i === nothing ? [0] : x[i:end]
+end
+
+function add_big(u, v, b)
+    n = max(length(u), length(v))
+    u = vcat(zeros(Int, n-length(u)), u)
+    v = vcat(zeros(Int, n-length(v)), v)
+
+    w = zeros(Int, n)
+    carry = 0
+    for j in n:-1:1
+        s = u[j] + v[j] + carry
+        w[j] = s % b
+        carry = div(s, b)
+    end
+    carry == 0 ? w : vcat(carry, w)
+end</code></pre>
+</section>
+<section id="сложение-неотрицательных-целых-чисел-1"
+class="slide level2">
+<h2>Сложение неотрицательных целых чисел</h2>
+<p>В рамках работы реализованы алгоритмы сложения и вычитания,
+основанные на поразрядной обработке чисел. Сложение выполняется справа
+налево с учётом переноса в старший разряд. Числа предварительно
+выравниваются по длине путём добавления ведущих нулей. После завершения
+операции результат нормализуется путём удаления ведущих нулей.</p>
+</section>
+<section id="вычитание-неотрицательных-целых-чисел"
+class="slide level2">
+<h2>Вычитание неотрицательных целых чисел</h2>
+<p>Выполним задание 2 с помощью языка Julia:</p>
+<pre><code>function sub_big(u, v, b)
+    n = length(u)
+    v = vcat(zeros(Int, n-length(v)), v)
+
+    w = zeros(Int, n)
+    borrow = 0
+    for j in n:-1:1
+        t = u[j] - v[j] + borrow
+        if t &lt; 0
+            t += b
+            borrow = -1
+        else
+            borrow = 0
+        end
+        w[j] = t
+    end
+    normalize(w)
+end</code></pre>
+</section>
+<section id="вычитание-неотрицательных-целых-чисел-1"
+class="slide level2">
+<h2>Вычитание неотрицательных целых чисел</h2>
+<p>Вычитание реализовано с использованием механизма заимствования, при
+котором при необходимости производится корректировка текущего
+разряда.</p>
+</section>
+<section id="умножение-многозначных-целых-чисел-столбиком"
+class="slide level2">
+<h2>Умножение многозначных целых чисел столбиком</h2>
+<p>Выполним задание 3 с помощью языка Julia:</p>
+<pre><code>function mul_big(u, v, b)
+    n, m = length(u), length(v)
+    w = zeros(Int, n + m)
+
+    for j in m:-1:1
+        carry = 0
+        for i in n:-1:1
+            t = u[i]*v[j] + w[i+j] + carry
+            w[i+j] = t % b
+            carry = div(t, b)
+        end
+        w[j] += carry
+    end
+    normalize(w)
+end</code></pre>
+<p>Алгоритм соответствует классическому умножению «столбиком», при
+котором каждый разряд одного множителя последовательно умножается на все
+разряды второго множителя с последующим суммированием частичных
+произведений.</p>
+</section>
+<section id="быстрое-умножения-многозначных-целых-чисел"
+class="slide level2">
+<h2>Быстрое умножения многозначных целых чисел</h2>
+<p>Выполним задание 4 с помощью языка Julia:</p>
+<pre><code>function mul_fast(u, v, b)
+    n, m = length(u), length(v)
+    w = zeros(Int, n + m)
+    t = 0
+
+    for s in 0:n+m-2
+        for i in max(0, s-m+1):min(s, n-1)
+            t += u[n-i] * v[m-(s-i)]
+        end
+        w[n+m-s] = t % b
+        t = div(t, b)
+    end
+    normalize(w)
+end</code></pre>
+<p>Быстрый столбик использует диагональный принцип суммирования
+произведений цифр. Это позволяет избежать формирования промежуточных
+чисел и получить итоговый результат за один проход по диагоналям.</p>
+<p>Оба алгоритма умножения приводят к одинаковому результату, что
+подтверждает корректность реализации.</p>
+</section>
+<section
+id="деление-многозначных-целых-чисел-с-вычислением-частного-и-остатка"
+class="slide level2">
+<h2>Деление многозначных целых чисел с вычислением частного и
+остатка</h2>
+<p>Выполним задание 5 с помощью языка Julia:</p>
+<pre><code>function div_big(u, v, b)
+    q = Int[]
+    r = Int[]
+
+    for digit in u
+        push!(r, digit)
+        r = normalize(r)
+
+        cnt = 0
+        while length(r) &gt; length(v) || (length(r) == length(v) &amp;&amp; r &gt;= v)
+            r = sub_big(r, v, b)
+            cnt += 1
+        end
+        push!(q, cnt)
+    end
+
+    normalize(q), normalize(r)
+end</code></pre>
+</section>
+<section
+id="деление-многозначных-целых-чисел-с-вычислением-частного-и-остатка-1"
+class="slide level2">
+<h2>Деление многозначных целых чисел с вычислением частного и
+остатка</h2>
+<p>Алгоритм деления реализован по принципу классического длинного
+деления. Делимое обрабатывается по цифрам, формируя текущий остаток. Для
+каждого шага определяется, сколько раз делитель помещается в текущем
+остатке, после чего вычисляется соответствующая цифра частного и
+обновляется остаток.</p>
+</section>
+<section id="полученные-результаты" class="slide level2">
+<h2>Полученные результаты</h2>
+<p>Сделаем вывод работы всех алгоритмов:</p>
+<pre><code>b = 10
+u = [1, 2, 3, 4]
+v = [5, 6, 7]
+println(&quot;u = &quot;, u)
+println(&quot;v = &quot;, v)
+
+println(&quot;\nАлгоритм 1 — сложение&quot;)
+println(add_big(u, v, b))
+
+println(&quot;\nАлгоритм 2 — вычитание (u ≥ v)&quot;)
+println(sub_big(u, v, b))
+
+println(&quot;\nАлгоритм 3 — умножение столбиком&quot;)
+println(mul_big(u, v, b))
+
+println(&quot;\nАлгоритм 4 — быстрый столбик&quot;)
+println(mul_fast(u, v, b))
+
+println(&quot;\nАлгоритм 5 — деление&quot;)
+q, r = div_big(u, v, b)
+println(&quot;частное = &quot;, q)
+println(&quot;остаток = &quot;, r)</code></pre>
+</section>
+<section id="полученные-результаты-1" class="slide level2">
+<h2>Полученные результаты</h2>
+<p>Полученные результаты работы кода:</p>
+<pre class="text"><code>u = [1, 2, 3, 4]
+v = [5, 6, 7]
+
+Алгоритм 1 — сложение
+[1, 8, 0, 1]
+
+Алгоритм 2 — вычитание (u ≥ v)
+[6, 6, 7]
+
+Алгоритм 3 — умножение столбиком
+[6, 9, 9, 6, 7, 8]
+
+Алгоритм 4 — быстрый столбик
+[6, 9, 9, 6, 7, 8]
+
+Алгоритм 5 — деление
+частное = [2]
+остаток = [1, 0, 0]</code></pre>
+</section>
+<section id="заключение" class="slide level2">
+<h2>Заключение</h2>
+<p>В ходе выполнения лабораторной работы были изучены и реализованы
+алгоритмы целочисленной арифметики многократной точности. Реализация
+показала, что стандартные арифметические операции могут быть выполнены
+над числами произвольной длины при использовании поразрядного
+представления данных. Полученные знания могут быть использованы при
+изучении криптографических алгоритмов и вычислительных методов.</p>
+</section>
+<section id="библиографическая-справка" class="slide level2">
+<h2>Библиографическая справка</h2>
+<p>[1] Julia: https://ru.wikipedia.org/wiki/Julia</p>
+</section>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/reveal.js@^5/dist/reveal.js"></script>
+
+  <!-- reveal.js plugins -->
+  <script src="https://unpkg.com/reveal.js@^5/plugin/notes/notes.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/search/search.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/zoom/zoom.js"></script>
+  <script src="https://unpkg.com/reveal.js@^5/plugin/math/math.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: true,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'bottom-right',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: false,
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: false,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'default',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'slide',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'fade',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    </body>
+</html>
